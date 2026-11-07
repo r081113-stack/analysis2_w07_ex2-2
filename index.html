@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>例題2 (2)：2変数関数の極値の判定 (3D)</title>
+
+  <!-- KaTeX（フォントは Computer Modern 系） -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      overflow: hidden;
+      background-color: #121218;
+      color: #e0e0e0;
+    }
+    .katex { font-size: 1.06em; }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    #ui-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      background: rgba(22, 25, 34, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 18px;
+      border-radius: 12px;
+      width: 360px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      padding-bottom: 8px;
+    }
+    .math-desc {
+      font-size: 0.82rem;
+      line-height: 1.6;
+      margin-bottom: 14px;
+      color: #cccccc;
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .control-group {
+      margin-bottom: 8px;
+    }
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.83rem;
+      margin-bottom: 5px;
+      color: #bbbbbb;
+    }
+    .control-group select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .control-group select:focus {
+      border-color: #6366f1;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
+    .section-title {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin: 10px 0 5px;
+    }
+    .step-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .toggle-btn, .step-btn, .reset-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      padding: 6px 6px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .toggle-btn:hover, .step-btn:hover, .reset-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .toggle-btn.active, .step-btn.active {
+      background: rgba(99, 102, 241, 0.28);
+      border-color: #818cf8;
+      color: #fff;
+      font-weight: 600;
+    }
+    .reset-btn {
+      width: 100%;
+      margin-top: 2px;
+      padding: 5px 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      flex: none;
+    }
+    .step-card {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: #d4d4d8;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+    .step-card b { color: #ffffff; }
+    .readout {
+      font-size: 0.78rem;
+      line-height: 1.8;
+      color: #d4d4d8;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+    .readout .row { margin-bottom: 2px; }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 1px 7px;
+      border-radius: 10px;
+      margin-left: 4px;
+      vertical-align: 1px;
+    }
+    .badge.ok  { background: rgba(16,185,129,0.22); border: 1px solid #10b981; color: #6ee7b7; }
+    .badge.no  { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.25); color: #aaa; }
+    .badge.up  { background: rgba(59,130,246,0.22); border: 1px solid #3b82f6; color: #93c5fd; }
+    .badge.dn  { background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #fca5a5; }
+    .verdict {
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      color: #ffffff;
+    }
+    /* 3D Label Overlay */
+    #labels-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .latex-label {
+      position: absolute;
+      z-index: 5;
+      color: #ffffff;
+      font-size: 12px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      background: rgba(12, 12, 18, 0.85);
+      padding: 3px 7px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      white-space: nowrap;
+      transition: opacity 0.15s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .latex-label.axis {
+      background: none;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      font-size: 17px;
+      color: #e5e7eb;
+    }
+  
+    .step-group.two { grid-template-columns: 1fr 1fr; }
+    .pdf-link {
+      display: block;
+      margin-top: 14px;
+      padding: 8px 10px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 0.8rem;
+      color: #e0e0ff;
+      background: rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(99, 102, 241, 0.55);
+      border-radius: 6px;
+    }
+    .pdf-link:hover {
+      background: rgba(99, 102, 241, 0.35);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+  <div id="labels-container"></div>
+
+  <div id="ui-panel">
+    <h1>例題2 (2)　2変数関数の極値</h1>
+
+    <div class="math-desc">
+      次の2変数関数 $f(x,y)$ の極値を調べよ.<br>
+      (2) $f(x,y)=2x^2-4xy+5y^2-4x-2y$
+    </div>
+
+    <div class="section-title">解答のステップ</div>
+    <div class="step-group two" id="step-group"></div>
+    <div class="step-card" id="step-card"></div>
+
+    <div id="stat-wrap">
+      <div class="section-title">着目する停留点</div>
+      <div class="step-group two" id="stat-group"></div>
+    </div>
+
+    <div class="section-title">点 $P(a,b)$ と切り口の方向</div>
+    <div class="control-group">
+      <label><span>点 $a$ ($x$ 座標):</span><span id="val-a"></span></label>
+      <input type="range" id="slider-a" min="0" max="1" step="0.05" value="0">
+    </div>
+    <div class="control-group">
+      <label><span>点 $b$ ($y$ 座標):</span><span id="val-b"></span></label>
+      <input type="range" id="slider-b" min="0" max="1" step="0.05" value="0">
+    </div>
+    <button class="reset-btn" id="btn-reset">停留点に戻す</button>
+    <div class="control-group" style="margin-top:8px;">
+      <label><span>切り口の方向 $\theta$:</span><span id="val-theta"></span></label>
+      <input type="range" id="slider-theta" min="0" max="180" step="5" value="35">
+    </div>
+
+    <div class="section-title">計算結果</div>
+    <div class="readout" id="readout"></div>
+
+    <div class="section-title">表示の切り替え</div>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="btn-fx"><span class="dot" style="background:#ef4444"></span>$f_x=0$</button>
+      <button class="toggle-btn" id="btn-fy"><span class="dot" style="background:#10b981"></span>$f_y=0$</button>
+      <button class="toggle-btn" id="btn-planePi"><span class="dot" style="background:#f59e0b"></span>接平面 $\pi$</button>
+      <button class="toggle-btn" id="btn-planeA"><span class="dot" style="background:#ef4444"></span>平面 $A$</button>
+      <button class="toggle-btn" id="btn-planeB"><span class="dot" style="background:#10b981"></span>平面 $B$</button>
+      <button class="toggle-btn" id="btn-dir"><span class="dot" style="background:#a78bfa"></span>切り口 $\theta$</button>
+      <button class="toggle-btn" id="btn-lineLa"><span class="dot" style="background:#dc2626"></span>接線 $l_a$</button>
+      <button class="toggle-btn" id="btn-lineLb"><span class="dot" style="background:#059669"></span>接線 $l_b$</button>
+    </div>
+
+    <!-- 問題と解答（PDF）へのリンク: index.html と同じフォルダに PDF を置くこと -->
+    <a class="pdf-link" href="analysis2_w07_ex2-2.pdf" target="_blank" rel="noopener">📄 問題と解答（PDF）を開く</a>
+  </div>
+
+  <script>
+  window.addEventListener('load', function () {
+
+    /* ---------- KaTeX ヘルパー ---------- */
+    const hasKatex = (typeof katex !== 'undefined');
+    function tex(s) {
+      if (!hasKatex) return s;
+      return katex.renderToString(s, { throwOnError: false });
+    }
+    if (hasKatex && typeof renderMathInElement === 'function') {
+      renderMathInElement(document.getElementById('ui-panel'), {
+        delimiters: [{ left: '$', right: '$', display: false }],
+        throwOnError: false
+      });
+    }
+    function fmt(v) {
+      if (Math.abs(v) < 1e-9) return '0';
+      return String(parseFloat(v.toFixed(2)));
+    }
+    function badge(cls, text) { return '<span class="badge ' + cls + '">' + text + '</span>'; }
+
+    /* ---------- 問題ごとの設定 ---------- */
+    const CFG = {
+      f:   (x, y) => 2 * x * x - 4 * x * y + 5 * y * y - 4 * x - 2 * y,
+      fx:  (x, y) => 4 * x - 4 * y - 4,
+      fy:  (x, y) => -4 * x + 10 * y - 2,
+      fxx: (x, y) => 4,
+      fxy: (x, y) => -4,
+      fyy: (x, y) => 10,
+      dom: { x0: -1.0, x1: 4.2, y0: -1.2, y1: 3.0 },
+      zs: 0.6, zcap: 7, zmin: -6, zlo: -5.5, zhi: 7,
+      axes: { x: [1.5, 4.7], y: [1.7, 3.5], z: [3.6, 4.7] },
+      cam: { pos: [10.8, 7.6, 9.8], target: [1.7, 0.3, -0.9] },
+      stat: [
+        { x: 2, y: 1, lab: '(2,\\,1)', btn: '(2,1)' }
+      ],
+      slideR: 1.0,
+      curvesFx: [{ fn: t => [t, t - 1], t0: -1.0, t1: 4.2 }],
+      curvesFy: [{ fn: t => [t, 0.4 * t + 0.2], t0: -1.0, t1: 4.2 }],
+      lab: {
+        fx: [[3.5, 2.5, 'f_x=0']],
+        fy: [[3.8, 1.72, 'f_y=0']]
+      },
+      steps: [
+        {
+          label: '① 必要条件',
+          card: () =>
+            '<b>① 極値であるための必要条件</b><br>' +
+            tex('f_x=4x-4y-4,\\ f_y=-4x+10y-2') + ' より，' +
+            tex('f_x=0') + ' かつ ' + tex('f_y=0') + ' ⇔ ' +
+            tex('4x-4y-4=0') + ' かつ ' + tex('-4x+10y-2=0') + '．<br>' +
+            'これを解いて ' + tex('(x,y)=(2,1)') + '．' +
+            '赤・緑の直線（' + tex('z=0') + ' 平面上の ' + tex('f_x=0,\\ f_y=0') + '）の交点が停留点である．'
+        },
+        {
+          label: '② 判定',
+          card: () =>
+            '<b>② 極値か否かの判定</b><br>' +
+            tex('f_{xx}=4,\\ f_{xy}=-4,\\ f_{yy}=10') + ' より，' + tex('(x,y)=(2,1)') + ' のとき<br>' +
+            tex('A=4>0,\\ B=-4,\\ C=10,\\ B^2-AC=-24<0') + '．<br>' +
+            'よって ' + tex('(2,1)') + ' で極小である．以上より，極小値 ' + tex('f(2,1)=-5') + '．'
+        }
+      ]
+    };
+    const DOM = CFG.dom;
+    const zs = CFG.zs;
+    // 数学の (x, y, z) を three.js の (X, Y, Z) = (x, zs*z, -y) に対応させる（右手系）
+    const P3 = (x, y, z) => new THREE.Vector3(x, zs * z, -y);
+    const okZ = v => Number.isFinite(v) && v <= CFG.zcap && v >= CFG.zmin;
+    const clampZ = v => Math.min(CFG.zcap, Math.max(CFG.zmin, v));
+    const inDom = (x, y) => x >= DOM.x0 - 1e-9 && x <= DOM.x1 + 1e-9 && y >= DOM.y0 - 1e-9 && y <= DOM.y1 + 1e-9;
+
+    const PRESET = {
+      0: { fx: true,  fy: true,  planePi: true,  planeA: false, planeB: false, dir: false, lineLa: true,  lineLb: true  },
+      1: { fx: false, fy: false, planePi: true,  planeA: true,  planeB: true,  dir: true,  lineLa: false, lineLb: false }
+    };
+    const state = {
+      step: 0,
+      sel: 0,
+      a: CFG.stat[0].x,
+      b: CFG.stat[0].y,
+      theta: 35,
+      show: Object.assign({}, PRESET[0])
+    };
+
+    /* ---------- Three.js 基本設定 ---------- */
+    const container = document.getElementById('canvas-container');
+    const labelsContainer = document.getElementById('labels-container');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x121218);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    const TARGET = new THREE.Vector3(CFG.cam.target[0], CFG.cam.target[1], CFG.cam.target[2]);
+    camera.position.set(CFG.cam.pos[0], CFG.cam.pos[1], CFG.cam.pos[2]);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.copy(TARGET);
+    controls.maxPolarAngle = Math.PI * 0.95;
+    controls.update();
+
+    // 曲面が「操作パネルを除いた右側領域」の中央に来るよう、画面を横にずらす
+    let centerK = 0;
+    function applyViewOffset() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const panelEl = document.getElementById('ui-panel');
+      const panelRight = (w > 760 && panelEl) ? panelEl.getBoundingClientRect().right : 0;
+      const targetX = (panelRight + w) / 2;
+      const centerX = (centerK / camera.aspect + 1) / 2 * w;
+      camera.setViewOffset(w, h, centerX - targetX, 0, w, h);
+    }
+    camera.lookAt(controls.target);
+    camera.updateMatrixWorld();
+    centerK = TARGET.clone().project(camera).x * camera.aspect;
+    applyViewOffset();
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.7);
+    dirLight1.position.set(6, 10, 8);
+    scene.add(dirLight1);
+    const dirLight2 = new THREE.DirectionalLight(0x88bbff, 0.35);
+    dirLight2.position.set(-6, -5, -6);
+    scene.add(dirLight2);
+
+    /* ---------- x, y, z 軸（グリッド・目盛りは描かない） ---------- */
+    const axisMat = new THREE.MeshBasicMaterial({
+      color: 0xd1d5db, transparent: true, opacity: 0.9, depthTest: false
+    });
+    function addAxis(dir, neg, pos) {
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, pos + neg, 12), axisMat);
+      shaft.quaternion.copy(q);
+      shaft.position.copy(dir.clone().multiplyScalar((pos - neg) / 2));
+      shaft.renderOrder = 10;
+      scene.add(shaft);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.26, 20), axisMat);
+      head.quaternion.copy(q);
+      head.position.copy(dir.clone().multiplyScalar(pos + 0.13));
+      head.renderOrder = 10;
+      scene.add(head);
+    }
+    const AX = CFG.axes;
+    addAxis(new THREE.Vector3(1, 0, 0), AX.x[0], AX.x[1]);
+    addAxis(new THREE.Vector3(0, 0, -1), AX.y[0], AX.y[1]);
+    addAxis(new THREE.Vector3(0, 1, 0), AX.z[0], AX.z[1]);
+
+    /* ---------- 曲面 S（値が大きすぎる部分・発散する部分は描かない） ---------- */
+    const SEG = 151;   // 奇数：格子点が x=0, y=0 に乗らない
+    const surfGeo = new THREE.PlaneGeometry(1, 1, SEG, SEG);
+    const sp = surfGeo.attributes.position;
+    const nV = sp.count;
+    const fVal = new Float32Array(nV);
+    for (let i = 0; i < nV; i++) {
+      const u = DOM.x0 + (sp.getX(i) + 0.5) * (DOM.x1 - DOM.x0);
+      const v = DOM.y0 + (sp.getY(i) + 0.5) * (DOM.y1 - DOM.y0);
+      fVal[i] = CFG.f(u, v);
+      const zc = Number.isFinite(fVal[i]) ? clampZ(fVal[i]) : 0;
+      sp.setXYZ(i, u, zs * zc, -v);
+    }
+    (function clipFaces() {
+      const old = surfGeo.index.array;
+      const keep = [];
+      for (let i = 0; i < old.length; i += 3) {
+        const a = old[i], b = old[i + 1], c = old[i + 2];
+        if (okZ(fVal[a]) || okZ(fVal[b]) || okZ(fVal[c])) keep.push(a, b, c);
+      }
+      surfGeo.setIndex(keep);
+    })();
+    surfGeo.computeVertexNormals();
+    sp.needsUpdate = true;
+
+    scene.add(new THREE.Mesh(surfGeo, new THREE.MeshStandardMaterial({
+      color: 0x3b82f6, side: THREE.DoubleSide, roughness: 0.3, metalness: 0.1,
+      transparent: true, opacity: 0.75
+    })));
+    scene.add(new THREE.Mesh(surfGeo, new THREE.MeshBasicMaterial({
+      color: 0x60a5fa, wireframe: true, transparent: true, opacity: 0.1
+    })));
+
+    /* ---------- 曲線・直線（細いチューブ） ---------- */
+    function makeTube(color, onTop) {
+      const m = new THREE.Mesh(new THREE.BufferGeometry(),
+        new THREE.MeshBasicMaterial({ color, transparent: !!onTop, opacity: onTop ? 0.95 : 1, depthTest: !onTop }));
+      if (onTop) m.renderOrder = 6;
+      return m;
+    }
+    function setTube(mesh, pts, r) {
+      mesh.geometry.dispose();
+      mesh.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.max(4, pts.length * 2), r, 8, false);
+    }
+    function disposeGroup(g) {
+      g.children.slice().forEach(o => {
+        if (o.geometry) o.geometry.dispose();
+        g.remove(o);
+      });
+    }
+    // 点列 xy=[[x,y],...] を，曲面上の値が有効な連続区間ごとにチューブにする
+    function addRuns(g, xy, color, r, zOf, valid, onTop) {
+      let run = [];
+      const runs = [];
+      xy.forEach(p => {
+        if (valid(p[0], p[1])) run.push(P3(p[0], p[1], zOf(p[0], p[1])));
+        else { if (run.length > 1) runs.push(run); run = []; }
+      });
+      if (run.length > 1) runs.push(run);
+      runs.forEach(rn => {
+        const m = makeTube(color, onTop);
+        setTube(m, rn, r);
+        g.add(m);
+      });
+    }
+    const onPlane = (x, y) => inDom(x, y);
+    const onSurf = (x, y) => inDom(x, y) && okZ(CFG.f(x, y));
+    const zPlane = () => 0.012 / zs;
+
+    // f_x = 0, f_y = 0 の曲線（z=0 平面上）
+    const fxGroup = new THREE.Group(), fyGroup = new THREE.Group();
+    scene.add(fxGroup); scene.add(fyGroup);
+    function sampleCurve(c) {
+      const n = c.n || 200, pts = [];
+      for (let i = 0; i <= n; i++) pts.push(c.fn(c.t0 + (c.t1 - c.t0) * i / n));
+      return pts;
+    }
+    CFG.curvesFx.forEach(c => addRuns(fxGroup, sampleCurve(c), 0xef4444, 0.028, zPlane, onPlane, true));
+    CFG.curvesFy.forEach(c => addRuns(fyGroup, sampleCurve(c), 0x10b981, 0.028, zPlane, onPlane, true));
+
+    /* ---------- 点 P，切断面，接線，接平面 ---------- */
+    const pointP = new THREE.Mesh(
+      new THREE.SphereGeometry(0.085, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.8 })
+    );
+    scene.add(pointP);
+
+    function makeSlicePlane(color, opacity) {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity, depthWrite: false })
+      );
+      scene.add(m);
+      return m;
+    }
+    const planeAMesh = makeSlicePlane(0xef4444, 0.13);
+    const planeBMesh = makeSlicePlane(0x10b981, 0.13);
+    const planeDMesh = makeSlicePlane(0xa78bfa, 0.14);
+    const curveAGroup = new THREE.Group(), curveBGroup = new THREE.Group(), curveDGroup = new THREE.Group();
+    scene.add(curveAGroup); scene.add(curveBGroup); scene.add(curveDGroup);
+    const lineLa = makeTube(0xdc2626, false), lineLb = makeTube(0x059669, false), lineLd = makeTube(0xddd6fe, false);
+    scene.add(lineLa); scene.add(lineLb); scene.add(lineLd);
+
+    const PI_HALF = 1.0;
+    const planePiGeo = new THREE.PlaneGeometry(PI_HALF * 2, PI_HALF * 2);
+    const basePiUV = [];
+    for (let i = 0; i < planePiGeo.attributes.position.count; i++) {
+      basePiUV.push({ u: planePiGeo.attributes.position.getX(i), v: planePiGeo.attributes.position.getY(i) });
+    }
+    const planePiMesh = new THREE.Mesh(planePiGeo, new THREE.MeshStandardMaterial({
+      color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.45,
+      roughness: 0.4, metalness: 0.1, depthWrite: false
+    }));
+    scene.add(planePiMesh);
+    const planePiEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(planePiGeo),
+      new THREE.LineBasicMaterial({ color: 0xd97706 })
+    );
+    planePiMesh.add(planePiEdges);
+
+    /* ---------- 停留点のしるし ---------- */
+    const statMeshes = CFG.stat.map(s => {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xfde68a })
+      );
+      m.position.copy(P3(s.x, s.y, CFG.f(s.x, s.y)));
+      scene.add(m);
+      return m;
+    });
+
+    /* ---------- 3D ラベル ---------- */
+    const labels = [];
+    function addLabel(html, cls, pos, test) {
+      const div = document.createElement('div');
+      div.className = 'latex-label' + (cls ? ' ' + cls : '');
+      div.innerHTML = html;
+      labelsContainer.appendChild(div);
+      const l = { el: div, pos: pos, test: test };
+      labels.push(l);
+      return l;
+    }
+    const always = () => true;
+    addLabel(tex('x'), 'axis', new THREE.Vector3(AX.x[1] + 0.65, 0, 0), always);
+    addLabel(tex('y'), 'axis', new THREE.Vector3(0, 0, -(AX.y[1] + 0.65)), always);
+    addLabel(tex('z'), 'axis', new THREE.Vector3(0, AX.z[1] + 0.7, 0), always);
+    addLabel(tex('O'), 'axis', new THREE.Vector3(-0.22, -0.22, 0.22), always);
+    CFG.stat.forEach(s => addLabel(tex(s.lab), '', P3(s.x, s.y, CFG.f(s.x, s.y)).add(new THREE.Vector3(0, -0.4, 0)), () => state.step === 0 || state.sel < 0));
+    (CFG.lab.fx || []).forEach(a => addLabel(tex(a[2]), '', P3(a[0], a[1], 0), () => state.show.fx));
+    (CFG.lab.fy || []).forEach(a => addLabel(tex(a[2]), '', P3(a[0], a[1], 0), () => state.show.fy));
+    const labP  = addLabel('', '', new THREE.Vector3(), always);
+    const labPi = addLabel('接平面 ' + tex('\\pi'), '', new THREE.Vector3(), () => state.show.planePi);
+    const labLa = addLabel('接線 ' + tex('l_a'), '', new THREE.Vector3(), () => state.show.lineLa);
+    const labLb = addLabel('接線 ' + tex('l_b'), '', new THREE.Vector3(), () => state.show.lineLb);
+    const labA  = addLabel('平面 ' + tex('A: x=a'), '', new THREE.Vector3(), () => state.show.planeA);
+    const labB  = addLabel('平面 ' + tex('B: y=b'), '', new THREE.Vector3(), () => state.show.planeB);
+    const labD  = addLabel('切り口 ' + tex('\\theta'), '', new THREE.Vector3(), () => state.show.dir);
+
+    const tempV = new THREE.Vector3();
+    function updateLabelsPosition() {
+      labels.forEach(l => {
+        if (!l.test()) { l.el.style.opacity = '0'; return; }
+        tempV.copy(l.pos).project(camera);
+        if (tempV.z > 1) { l.el.style.opacity = '0'; return; }
+        const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+        l.el.style.transform = 'translate(-50%, -50%) translate(' + x + 'px,' + y + 'px)';
+        l.el.style.opacity = '1';
+      });
+    }
+
+    /* ---------- シーン更新 ---------- */
+    function directionRange(a, b, c, s) {
+      let lo = -1e9, hi = 1e9;
+      [[a, c, DOM.x0, DOM.x1], [b, s, DOM.y0, DOM.y1]].forEach(q => {
+        if (Math.abs(q[1]) > 1e-9) {
+          const t1 = (q[2] - q[0]) / q[1], t2 = (q[3] - q[0]) / q[1];
+          lo = Math.max(lo, Math.min(t1, t2));
+          hi = Math.min(hi, Math.max(t1, t2));
+        }
+      });
+      return [lo, hi];
+    }
+    function range(lo, hi, n) {
+      const r = [];
+      for (let i = 0; i <= n; i++) r.push(lo + (hi - lo) * i / n);
+      return r;
+    }
+    const zOfSurf = (x, y) => CFG.f(x, y);
+
+    function updateScene() {
+      const a = state.a, b = state.b;
+      const z0 = CFG.f(a, b), fa = CFG.fx(a, b), fb = CFG.fy(a, b);
+      const zmid = (CFG.zlo + CFG.zhi) / 2, zh = CFG.zhi - CFG.zlo;
+
+      pointP.position.copy(P3(a, z0, 0)).set(a, zs * z0, -b);
+      labP.pos.set(a - 0.3, zs * z0 + 0.4, -b + 0.3);
+      labP.el.innerHTML = tex('P(' + fmt(a) + ',\\,' + fmt(b) + ')');
+
+      // 平面 A: x = a
+      planeAMesh.position.set(a, zs * zmid, -(DOM.y0 + DOM.y1) / 2);
+      planeAMesh.rotation.set(0, Math.PI / 2, 0);
+      planeAMesh.scale.set(DOM.y1 - DOM.y0, zs * zh, 1);
+      disposeGroup(curveAGroup);
+      addRuns(curveAGroup, range(DOM.y0, DOM.y1, 400).map(y => [a, y]), 0xf87171, 0.028, zOfSurf, onSurf, false);
+      labA.pos.set(a, zs * (CFG.zhi - 0.6), -DOM.y1);
+
+      // 平面 B: y = b
+      planeBMesh.position.set((DOM.x0 + DOM.x1) / 2, zs * zmid, -b);
+      planeBMesh.rotation.set(0, 0, 0);
+      planeBMesh.scale.set(DOM.x1 - DOM.x0, zs * zh, 1);
+      disposeGroup(curveBGroup);
+      addRuns(curveBGroup, range(DOM.x0, DOM.x1, 400).map(x => [x, b]), 0x34d399, 0.028, zOfSurf, onSurf, false);
+      labB.pos.set(DOM.x0, zs * (CFG.zhi - 0.6), -b);
+
+      // 接線 l_a（平面 A 上: y 方向），l_b（平面 B 上: x 方向）
+      const sLen = 1.1;
+      const la0 = P3(a, b - sLen, z0 - fb * sLen), la1 = P3(a, b + sLen, z0 + fb * sLen);
+      setTube(lineLa, [la0, la1], 0.024);
+      labLa.pos.copy(la1).add(new THREE.Vector3(0, 0.2, 0));
+      const lb0 = P3(a - sLen, b, z0 - fa * sLen), lb1 = P3(a + sLen, b, z0 + fa * sLen);
+      setTube(lineLb, [lb0, lb1], 0.024);
+      labLb.pos.copy(lb1).add(new THREE.Vector3(0, 0.2, 0));
+
+      // 接平面 π
+      const piPos = planePiGeo.attributes.position;
+      for (let i = 0; i < piPos.count; i++) {
+        const u = basePiUV[i].u, v = basePiUV[i].v;
+        piPos.setXYZ(i, a + u, zs * (z0 + fa * u + fb * v), -(b + v));
+      }
+      piPos.needsUpdate = true;
+      planePiGeo.computeVertexNormals();
+      planePiGeo.computeBoundingSphere();
+      planePiEdges.geometry.dispose();
+      planePiEdges.geometry = new THREE.EdgesGeometry(planePiGeo);
+      labPi.pos.set(a + 0.9, zs * (z0 + fa * 0.9 - fb * 0.9) + 0.12, -(b - 0.9));
+
+      // 方向 θ の切り口
+      const th = state.theta * Math.PI / 180;
+      const c = Math.cos(th), s = Math.sin(th);
+      const rg = directionRange(a, b, c, s);
+      const tlo = rg[0], thi = rg[1];
+      planeDMesh.position.set(a + c * (tlo + thi) / 2, zs * zmid, -(b + s * (tlo + thi) / 2));
+      planeDMesh.rotation.set(0, th, 0);
+      planeDMesh.scale.set(thi - tlo, zs * zh, 1);
+      disposeGroup(curveDGroup);
+      addRuns(curveDGroup, range(tlo, thi, 400).map(t => [a + t * c, b + t * s]), 0xc4b5fd, 0.03, zOfSurf, onSurf, false);
+      const slope = fa * c + fb * s;
+      const tl = Math.min(sLen, thi, -tlo);
+      setTube(lineLd, [P3(a - tl * c, b - tl * s, z0 - slope * tl), P3(a + tl * c, b + tl * s, z0 + slope * tl)], 0.022);
+      labD.pos.set(a + thi * c, zs * (CFG.zhi - 0.6), -(b + thi * s));
+
+      // 表示・非表示
+      fxGroup.visible = state.show.fx;
+      fyGroup.visible = state.show.fy;
+      planePiMesh.visible = state.show.planePi;
+      planeAMesh.visible = state.show.planeA; curveAGroup.visible = state.show.planeA;
+      planeBMesh.visible = state.show.planeB; curveBGroup.visible = state.show.planeB;
+      planeDMesh.visible = state.show.dir; curveDGroup.visible = state.show.dir; lineLd.visible = state.show.dir;
+      lineLa.visible = state.show.lineLa;
+      lineLb.visible = state.show.lineLb;
+    }
+
+    /* ---------- パネルの表示（解説・計算結果） ---------- */
+    function renderStepCard() {
+      document.getElementById('step-card').innerHTML = CFG.steps[state.step].card();
+    }
+    function curStat() { return CFG.stat[state.sel]; }
+
+    function renderReadout() {
+      const a = state.a, b = state.b;
+      const fxv = CFG.fx(a, b), fyv = CFG.fy(a, b);
+      const stat = Math.abs(fxv) < 1e-6 && Math.abs(fyv) < 1e-6;
+      const A = CFG.fxx(a, b), B = CFG.fxy(a, b), C = CFG.fyy(a, b);
+      const D = B * B - A * C;
+      const th = state.theta * Math.PI / 180;
+      const gpp = A * Math.cos(th) ** 2 + 2 * B * Math.sin(th) * Math.cos(th) + C * Math.sin(th) ** 2;
+      const sg = Math.abs(D) < 1e-9 ? '=0' : (D < 0 ? '<0' : '>0');
+      const pt = '(' + fmt(a) + ',' + fmt(b) + ')';
+
+      let h = '<div class="row">' + tex('f_x' + pt + '=' + fmt(fxv) + ',\\ f_y' + pt + '=' + fmt(fyv)) +
+        (stat ? badge('ok', '停留点') : badge('no', '停留点ではない')) + '</div>';
+      if (state.step === 1) {
+        h += '<div class="row">' + tex('A=' + fmt(A) + ',\\ B=' + fmt(B) + ',\\ C=' + fmt(C)) + '</div>';
+        h += '<div class="row">' + tex('B^2-AC=' + fmt(D) + '\\ (' + sg + ')') + '</div>';
+        h += '<div class="row">' + tex('g\'\'(0)=' + fmt(gpp)) + '（' + tex('\\theta=' + state.theta + '^\\circ') + '）' +
+          (Math.abs(gpp) < 1e-9 ? badge('no', '曲がりなし') : (gpp > 0 ? badge('up', '下に凸') : badge('dn', '上に凸'))) + '</div>';
+        let v;
+        if (!stat) {
+          v = tex('f_x=0') + ' かつ ' + tex('f_y=0') + ' を満たさないので，極値になりえない．';
+        } else if (Math.abs(D) < 1e-9) {
+          v = tex('B^2-AC=0') + ' なので，この判定では決まらない．';
+        } else if (D < 0 && A > 0) {
+          v = tex('A>0,\\ B^2-AC<0') + ' より，<b>極小値 ' + tex('f' + pt + '=' + fmt(CFG.f(a, b))) + '</b>';
+        } else if (D < 0 && A < 0) {
+          v = tex('A<0,\\ B^2-AC<0') + ' より，<b>極大値 ' + tex('f' + pt + '=' + fmt(CFG.f(a, b))) + '</b>';
+        } else {
+          v = tex('B^2-AC>0') + ' より，<b>極値をとらない</b>（鞍点）．';
+        }
+        h += '<div class="verdict">' + v + '</div>';
+      } else {
+        h += '<div class="verdict">' + (stat
+          ? '接線 ' + tex('l_a,\\,l_b') + ' はともに水平で，接平面 ' + tex('\\pi') + ' も水平である．'
+          : '停留点ではないので，接平面 ' + tex('\\pi') + ' は傾いている．') + '</div>';
+      }
+      document.getElementById('readout').innerHTML = h;
+    }
+
+    function syncButtons() {
+      ['fx', 'fy', 'planePi', 'planeA', 'planeB', 'dir', 'lineLa', 'lineLb'].forEach(k => {
+        document.getElementById('btn-' + k).classList.toggle('active', !!state.show[k]);
+      });
+      CFG.steps.forEach((st, i) => document.getElementById('step-' + i).classList.toggle('active', state.step === i));
+      document.querySelectorAll('#stat-group .step-btn').forEach((bt, i) => bt.classList.toggle('active', i === state.sel));
+      document.getElementById('val-a').innerHTML = tex(fmt(state.a));
+      document.getElementById('val-b').innerHTML = tex(fmt(state.b));
+      document.getElementById('val-theta').innerHTML = tex(state.theta + '^\\circ');
+    }
+    function refresh() {
+      updateScene();
+      renderStepCard();
+      renderReadout();
+      syncButtons();
+    }
+
+    /* ---------- 点 P の移動範囲を，選んだ停留点のまわりに設定 ---------- */
+    const sliderA = document.getElementById('slider-a'), sliderB = document.getElementById('slider-b');
+    function setPointRange() {
+      const s = curStat(), R = CFG.slideR;
+      sliderA.min = s.x - R; sliderA.max = s.x + R;
+      sliderB.min = s.y - R; sliderB.max = s.y + R;
+      state.a = s.x; state.b = s.y;
+      sliderA.value = s.x; sliderB.value = s.y;
+    }
+    function setStep(n) {
+      state.step = n;
+      Object.assign(state.show, PRESET[n]);
+      refresh();
+    }
+
+    /* ---------- ボタンの生成 ---------- */
+    const stepGroup = document.getElementById('step-group');
+    CFG.steps.forEach((st, i) => {
+      const bt = document.createElement('button');
+      bt.className = 'step-btn';
+      bt.id = 'step-' + i;
+      bt.innerHTML = st.label.replace(/\$([^$]+)\$/g, (m, g) => tex(g));
+      bt.addEventListener('click', () => setStep(i));
+      stepGroup.appendChild(bt);
+    });
+    const statGroup = document.getElementById('stat-group');
+    if (CFG.stat.length > 1) {
+      CFG.stat.forEach((s, i) => {
+        const bt = document.createElement('button');
+        bt.className = 'step-btn';
+        bt.innerHTML = tex(s.btn);
+        bt.addEventListener('click', () => { state.sel = i; setPointRange(); refresh(); });
+        statGroup.appendChild(bt);
+      });
+    } else {
+      document.getElementById('stat-wrap').style.display = 'none';
+    }
+
+    /* ---------- イベント ---------- */
+    sliderA.addEventListener('input', e => { state.a = parseFloat(e.target.value); refresh(); });
+    sliderB.addEventListener('input', e => { state.b = parseFloat(e.target.value); refresh(); });
+    document.getElementById('slider-theta').addEventListener('input', e => {
+      state.theta = parseInt(e.target.value, 10);
+      refresh();
+    });
+    document.getElementById('btn-reset').addEventListener('click', () => { setPointRange(); refresh(); });
+    ['fx', 'fy', 'planePi', 'planeA', 'planeB', 'dir', 'lineLa', 'lineLb'].forEach(k => {
+      document.getElementById('btn-' + k).addEventListener('click', () => {
+        state.show[k] = !state.show[k];
+        refresh();
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      applyViewOffset();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* ---------- 開始 ---------- */
+    setPointRange();
+    setStep(0);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      updateLabelsPosition();
+      renderer.render(scene, camera);
+    }
+    animate();
+  });
+  </script>
+</body>
+</html>
